@@ -52,7 +52,7 @@ if (apiQuotes.length === 0) {
 
 // Route to check server status (optional)
 app.get('/', (req, res) => {
-  res.send('Server is running');
+  res.send('Tweeted'+ tweet('Working'));
 });
 
 // Start the server
