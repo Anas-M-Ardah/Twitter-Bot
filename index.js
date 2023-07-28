@@ -6,17 +6,23 @@ let apiQuotes = [];
 
 const tweet = async () => {
   try {
-    const quote = apiQuotes.pop();
-    const author = quote.author;
-    let secondParameter = '';
-    if (author !== 'Anonymous') {
-      secondParameter =  '\nauthor: ' + author;
+    if (apiQuotes.length === 0) {
+      await getQuotes();
     }
-    await twitterClient.v2.tweet(quote.text + secondParameter);
-    return 'Tweeted: ' + quote.text;
+    if (apiQuotes.length > 0) {
+      const quote = apiQuotes.pop();
+      const author = quote.author;
+      let secondParameter = '';
+      if (author !== 'Anonymous') {
+        secondParameter =  '\nauthor: ' + author;
+      }
+      await twitterClient.v2.tweet(quote.text + secondParameter);
+      console.log('Tweeted:', quote.text);
+    } else {
+      console.log('No quotes available for tweeting.');
+    }
   } catch (e) {
-    console.log(e);
-    return 'Error tweeting';
+    console.error('Error tweeting:', e);
   }
 }
 
@@ -27,26 +33,16 @@ async function getQuotes() {
     const response = await fetch(apiURL);
     apiQuotes = await response.json();
   } catch (error) {
-    console.log(error);
+    console.error('Error fetching quotes from API:', error);
   }
 }
 
 // Start tweeting every 8 hours (adjust the interval as needed)
-setInterval(() => {
-  if (apiQuotes.length === 0) {
-    getQuotes().then(() => {
-      tweet();
-    });
-  } else {
-    tweet();
-  }
-}, 8 * 60 * 60 * 1000); // 8 hours in milliseconds
+setInterval(tweet, 8 * 60 * 60 * 1000); // 8 hours in milliseconds
 
-getQuotes();
 // Route to check server status (optional)
-app.get('/', async (req, res) => {
-  const result = await tweet();
-  res.send(result);
+app.get('/', (req, res) => {
+  res.send('Server is running');
 });
 
 // Start the server
