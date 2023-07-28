@@ -42,7 +42,7 @@ setInterval(() => {
   }
 }, 8 * 60 * 60 * 1000); // 8 hours in milliseconds
 
-
+getQuotes();
 // Route to check server status (optional)
 app.get('/', async (req, res) => {
   const result = await tweet();
