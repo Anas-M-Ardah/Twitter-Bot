@@ -30,11 +30,6 @@ async function getQuotes(){
     }
 }
 
-// Tweets every 8 hours (adjust the interval as needed)
-// setInterval(() => {
-//   start();
-// }, 8 * 60 * 60 * 1000); // 24 hours in milliseconds
-
 async function start(){
   if(apiQuotes.length === 0){
     await getQuotes();
@@ -43,12 +38,10 @@ async function start(){
 }
 
 app.get('/', (req, res) => {
-  // Test the app
-  const test = 1;
-  if(test === 1){
+  // Tweets every 8 hours (adjust the interval as needed)
+  setInterval(() => {
     start();
-    test--;
-  }
+  }, 8 * 60 * 60 * 1000); // 24 hours in milliseconds
 });
 
 // Start the server
