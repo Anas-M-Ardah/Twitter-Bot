@@ -13,8 +13,10 @@ const tweet = async () => {
       secondParameter =  '\nauthor: ' + author;
     }
     await twitterClient.v2.tweet(quote.text + secondParameter);
+    return 'Tweeted: ' + quote.text;
   } catch (e) {
     console.log(e);
+    return 'Error tweeting';
   }
 }
 
@@ -40,19 +42,11 @@ setInterval(() => {
   }
 }, 8 * 60 * 60 * 1000); // 8 hours in milliseconds
 
-// Test
-if (apiQuotes.length === 0) {
-  getQuotes().then(() => {
-    tweet();
-  });
-} else {
-  tweet();
-}
-
 
 // Route to check server status (optional)
-app.get('/', (req, res) => {
-  res.send('Tweeted'+ tweet('Working'));
+app.get('/', async (req, res) => {
+  const result = await tweet();
+  res.send(result);
 });
 
 // Start the server
