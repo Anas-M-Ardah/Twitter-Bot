@@ -1,5 +1,7 @@
 require("dotenv").config({ path: __dirname + "/.env" });
 const { twitterClient } = require("./twitterClient.js");
+const express = require('express');
+const app = express();
 let apiQuotes = [];
 
 const tweet = async () => {
@@ -29,9 +31,9 @@ async function getQuotes(){
 }
 
 // Tweets every 8 hours (adjust the interval as needed)
-setInterval(() => {
-  start();
-}, 8 * 60 * 60 * 1000); // 24 hours in milliseconds
+// setInterval(() => {
+//   start();
+// }, 8 * 60 * 60 * 1000); // 24 hours in milliseconds
 
 async function start(){
   if(apiQuotes.length === 0){
@@ -40,12 +42,14 @@ async function start(){
   tweet();
 }
 
-// Test the app
-const test = 1;
-if(test === 1){
-  start();
-  test--;
-}
+app.get('/', (req, res) => {
+  // Test the app
+  const test = 1;
+  if(test === 1){
+    start();
+    test--;
+  }
+});
 
 
 
