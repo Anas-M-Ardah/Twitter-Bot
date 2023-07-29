@@ -43,8 +43,9 @@ const job = new CronJob("* * * * * *", () => {
   tweet();
 });
 
-app.get('/', async (req, res) => {
-  res.send('Tweeted', await tweet());
+app.get('/', (req, res) => {
+  tweet();
+  res.send('Tweeted');
 })
 
 app.listen(3000, (req, res) => {
