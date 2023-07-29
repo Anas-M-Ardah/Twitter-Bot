@@ -39,10 +39,13 @@ async function getQuotes() {
   }
 }
 
-const job = new CronJob("15 * * * *", () => {
+const job = new CronJob("* * * * * *", () => {
   tweet();
 });
 
-job.start();
+
+app.listen(3000, (req, res) => {
+  job.start();
+});
 
 
