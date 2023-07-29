@@ -38,9 +38,19 @@ async function getQuotes() {
   }
 }
 
-const job = new CronJob("* * * * *", ()=>{
+const job = new CronJob("15 * * * *", () => {
   tweet();
 });
 
 job.start();
 
+// Route to check server status (optional)
+app.get('/', (req, res) => {
+  res.send('Server is running');
+});
+
+// Start the server
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Server started on port ${port}`);
+});
