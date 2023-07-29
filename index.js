@@ -1,5 +1,6 @@
 require("dotenv").config({ path: __dirname + "/.env" });
 const { twitterClient } = require("./twitterClient.js");
+const axios = require('axios');
 let apiQuotes = [];
 
 const tweet = async () => {
@@ -37,10 +38,25 @@ async function getQuotes() {
   }
 }
 
-// Call the tweet function initially to start tweeting
+
+// Function to make the GET request
+async function makeGetRequest() {
+  try {
+    const response = await axios.get('https://graceful-coat-bear.cyclic.app/'); // Replace with your API endpoint
+    console.log('Response:', response.data); // Do something with the response data
+  } catch (error) {
+    console.error('Error making GET request:', error);
+  }
+}
+
+// Make the initial request
+makeGetRequest();
+
+// Schedule the GET request to be made every hour (adjust the interval as needed)
+setInterval(() => {
+  makeGetRequest();
+}, 60 * 60 * 1000); // 1 hour in milliseconds
+
+
 tweet();
 
-// Tweets every 8 hours (adjust the interval as needed)
-setInterval(() => {
-  tweet();
-}, 8 * 60 * 60 * 1000); // 8 hours in milliseconds
