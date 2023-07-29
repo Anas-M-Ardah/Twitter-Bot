@@ -6,6 +6,7 @@ const CronJob = require('cron').CronJob;
 let apiQuotes = [];
 
 const tweet = async () => {
+  console.log('running tweet');
   try {
     if (apiQuotes.length === 0) {
       await getQuotes();
@@ -42,15 +43,10 @@ const job = new CronJob("15 * * * *", () => {
   tweet();
 });
 
-job.start();
+// job.start();
 
-// Route to check server status (optional)
-app.get('/', (req, res) => {
-  res.send('Server is running');
-});
+console.log('Above Tweet');
+tweet();
+console.log('Below Tweet');
 
-// Start the server
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server started on port ${port}`);
-});
+
