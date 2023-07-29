@@ -26,8 +26,8 @@ const tweet = async () => {
   } catch (e) {
     if(e.data.title !== 'Too Many Requests'){
       tweet();
-      console.log('Unable to send tweet too many requests were made come back tommorow :)');
     }
+    console.log('Unable to send tweet too many requests were made come back tommorow :)');
   }
 }
 
