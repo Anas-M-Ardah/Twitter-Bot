@@ -45,7 +45,7 @@ const job = new CronJob("* * * * * *", () => {
 });
 
 app.get('/', (req, res) => {
-  tweet();
+  console.log(tweet());
   res.send('Tweeted');
 })
 
