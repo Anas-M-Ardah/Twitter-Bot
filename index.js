@@ -43,10 +43,6 @@ const job = new CronJob("15 * * * *", () => {
   tweet();
 });
 
-// job.start();
-
-console.log('Above Tweet');
-tweet();
-console.log('Below Tweet');
+job.start();
 
 
