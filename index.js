@@ -49,8 +49,6 @@ async function makeGetRequest() {
   }
 }
 
-// Make the initial request
-makeGetRequest();
 
 // Schedule the GET request to be made every hour (adjust the interval as needed)
 setInterval(() => {
