@@ -24,6 +24,7 @@ const tweet = async () => {
       console.log('No quotes available for tweeting.');
     }
   } catch (e) {
+    apiQuotes.pop();
     console.error('Error tweeting:', e);
   }
 }
