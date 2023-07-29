@@ -2,6 +2,7 @@ require("dotenv").config({ path: __dirname + "/.env" });
 const { twitterClient } = require("./twitterClient.js");
 const express = require('express');
 const app = express();
+const CronJob = require('cron').CronJob;
 let apiQuotes = [];
 
 const tweet = async () => {
@@ -37,16 +38,9 @@ async function getQuotes() {
   }
 }
 
-// Start tweeting every 8 hours (adjust the interval as needed)
-setInterval(tweet, 8 * 60 * 60 * 1000); // 8 hours in milliseconds
-
-// Route to check server status (optional)
-app.get('/', (req, res) => {
-  res.send('Server is running');
+const job = new CronJob("* * * * *", ()=>{
+  tweet();
 });
 
-// Start the server
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server started on port ${port}`);
-});
+job.start();
+
