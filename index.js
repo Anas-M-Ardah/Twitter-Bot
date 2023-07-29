@@ -43,9 +43,12 @@ const job = new CronJob("* * * * * *", () => {
   tweet();
 });
 
+app.get('/', async (req, res) => {
+  res.send('Tweeted', await tweet());
+})
 
 app.listen(3000, (req, res) => {
-  job.start();
+  console.log('Server is running on port 3000');
 });
 
 
