@@ -1,4 +1,5 @@
 require("dotenv").config({ path: __dirname + "/.env" });
+const { response } = require("express");
 const { twitterClient } = require("./twitterClient.js");
 const axios = require('axios');
 let apiQuotes = [];
@@ -12,6 +13,7 @@ const tweet = async () => {
       await getQuotes();
       console.log('Done!');
     }
+    console.log(apiQuotes);
     quote = apiQuotes.pop();
     const author = quote.author;
     let secondParameter = '';
@@ -19,17 +21,18 @@ const tweet = async () => {
       secondParameter = '\nauthor: ' + author;
     }
     console.log('Sending Tweet');
-    await twitterClient.v2.tweet(quote.text + secondParameter);
+    await twitterClient.v2.tweet(quote.content + secondParameter);
     console.log('Done! Check @IdrisTheBot');
   } catch (e) {
-    console.log(e);
-    tweet();
+    if(e.data.title !== 'Too Many Requests'){
+      tweet();
+    }
   }
 }
 
 // Get Quotes from API
 async function getQuotes() {
-  const apiURL = "https://jacintodesign.github.io/quotes-api/data/quotes.json";
+  const apiURL = "https://api.quotable.io/quotes/random?limit=1";
   try {
     const response = await fetch(apiURL);
     apiQuotes = await response.json();
