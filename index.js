@@ -3,6 +3,8 @@ const { response } = require("express");
 const { twitterClient } = require("./twitterClient.js");
 const axios = require('axios');
 let apiQuotes = [];
+const express = require('express');
+const app = express();
 
 const tweet = async () => {
   try {
@@ -62,3 +64,10 @@ setInterval(() => {
 
 tweet();
 
+app.get('/',(req, res) => {
+  res.send('Tweeted Check @IdrisTheBot on Twitter');
+})
+
+app.listen(3000, (req, res) => {
+  console.log('Server is running on port 3000');
+})
