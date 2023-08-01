@@ -45,27 +45,9 @@ async function getQuotes() {
 }
 
 
-// Function to make the GET request
-async function makeGetRequest() {
-  try {
-    const response = await axios.get('https://graceful-coat-bear.cyclic.app/'); // Replace with your API endpoint
-    console.log('Response:', response.data); // Do something with the response data
-  } catch (error) {
-    console.error('Error making GET request:', error);
-  }
-}
-
-
-// Schedule the GET request to be made every hour (adjust the interval as needed)
-setInterval(() => {
-  makeGetRequest();
-}, 60 * 60 * 1000); // 1 hour in milliseconds
-
-
-tweet();
-
 app.get('/',(req, res) => {
-  res.send('Tweeted Check @IdrisTheBot on Twitter');
+  tweet();
+  res.send('Tweeted! Check @IdrisTheBot on Twitter');
 })
 
 app.listen(3000, (req, res) => {
