@@ -45,8 +45,9 @@ async function getQuotes() {
 }
 
 
-app.get('/',(req, res) => {
-  tweet();
+app.get('/', async (req, res) => {
+  console.log('Running Tweet');
+  let test = await tweet();
   res.send('Tweeted! Check @IdrisTheBot on Twitter');
 })
 
