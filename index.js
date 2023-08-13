@@ -20,7 +20,7 @@ const tweet = async () => {
     const author = quote.author;
     let secondParameter = '';
     if (author !== 'Anonymous') {
-      secondParameter = '\nauthor: ' + author;
+      secondParameter = '\n-' + author + '\n#quote #dailyquote #quotes #wisdom #inspiration #inspirational';
     }
     console.log('Sending Tweet');
     await twitterClient.v2.tweet(quote.content + secondParameter);
