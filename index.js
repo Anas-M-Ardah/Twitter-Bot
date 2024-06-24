@@ -6,48 +6,98 @@ let apiQuotes = [];
 const express = require('express');
 const app = express();
 
+
+/**
+ * Tweets a random event fetched from the Wikimedia API.
+ *
+ * @return {Promise<void>} A Promise that resolves when the tweet is successfully posted.
+ * @throws {Error} If there is an error fetching the data or posting the tweet.
+ */
 const tweet = async () => {
-  try {
-    let quote = apiQuotes.pop();
-    if (!quote) {
-      // If no quote is available, fetch new quotes from the API
-      console.log('Geting Quotes');
-      await getQuotes();
-      console.log('Done!');
+  try { // Start of try block
+    const data = await fetchApi(); // Fetch data from the API
+    const event = getRandomEvent(data); // Get a random event from the data
+
+    if (event) { // If an event is available
+      const { text, url } = event; // Destructure the required properties from the event
+
+      const tweetText = `On This Day: ${text} \n\nFor more information visit: ${url} \n\n#OnThisDay`; // Construct the tweet text
+
+      await twitterClient.v2.tweet(tweetText); // Post the tweet
     }
-    console.log(apiQuotes);
-    quote = apiQuotes.pop();
-    const author = quote.author;
-    let secondParameter = '';
-    if (author !== 'Anonymous') {
-      secondParameter = '\n~' + author + '\n#quote';
-    }
-    console.log('Sending Tweet');
-    await twitterClient.v2.tweet(quote.content + secondParameter);
-    console.log('Done! Check @IdrisTheBot');
-  } catch (e) {
-    if(e.data.title !== 'Too Many Requests'){
-      tweet();
-    }
-    console.log('Unable to send tweet too many requests were made come back tommorow :)');
+  } catch (error) { // Start of catch block
+    console.error("Error:", error); // Log the error
   }
 }
 
-// Get Quotes from API
-async function getQuotes() {
-  const apiURL = "https://api.quotable.io/quotes/random?limit=1";
+/**
+ * Fetches data from the Wikimedia API for today's events.
+ *
+ * @return {Promise<Object>} A Promise that resolves to the JSON response from the API.
+ * @throws {Error} If there is an error fetching the data.
+ */
+async function fetchApi() {
+  // Get the current date and convert it to month and day
+  const day = new Date().getDate();
+  const month = new Date().getMonth() + 1;
+
+  // Construct the URL for the API request
+  const url = `https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/all/${month}/${day}`;
+
   try {
-    const response = await fetch(apiURL);
-    apiQuotes = await response.json();
+    // Fetch the data from the API
+    const response = await fetch(url);
+
+    // Throw an error if the response is not ok
+    if (!response.ok) {
+      throw new Error(`Error fetching data: ${response.statusText}`);
+    }
+
+    // Parse the response as JSON and return it
+    const data = await response.json();
+    return data;
+
   } catch (error) {
-    console.log(error);
+    // Log the error and return an error object
+    console.error("Fetch API error:", error);
+    return { error: "Failed to fetch data" };
   }
 }
 
+/**
+ * Function to get a random event from the data.
+ * @param {Object} data - The data object containing the events.
+ * @returns {Object|null} - The selected event with text and URL properties, or null if data is invalid or empty.
+ */
+function getRandomEvent(data) {
+  // Ensure 'data' and 'data["selected"]' are valid and 'selected' is not empty
+  if (!data || !Array.isArray(data["selected"]) || data["selected"].length === 0) {
+      console.error("Invalid data or empty events list.");
+      return null;
+  }
+
+  // Generate a random index to select an event
+  const randomIndex = Math.floor(Math.random() * data["selected"].length);
+  const selectedEvent = data["selected"][randomIndex];
+
+  // Extract the first page's details if 'pages' array is present and not empty
+  const pageDetails = selectedEvent["pages"] && selectedEvent["pages"].length > 0 ? selectedEvent["pages"][0] : {};
+
+  // Construct the result object with desired properties
+  const events = {
+      // The text of the event
+      "text": selectedEvent["text"],
+      // The URL of the event's page on Wikipedia
+      "url": pageDetails["content_urls"] && pageDetails["content_urls"]["desktop"] ? pageDetails["content_urls"]["desktop"]["page"] : null,
+  };
+
+  return events;
+}
 
 app.get('/', async (req, res) => {
   console.log('Running Tweet');
   let test = await tweet();
+  console.log("Tweeted: " + test);
   res.send('Tweeted! Check @IdrisTheBot on Twitter');
 })
 
