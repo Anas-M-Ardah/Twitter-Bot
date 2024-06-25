@@ -19,13 +19,23 @@ const tweet = async () => {
     const event = getRandomEvent(data); // Get a random event from the data
 
     if (event) { // If an event is available
-      const { text, url } = event; // Destructure the required properties from the event
+      const { text, url, year } = event; // Destructure the required properties from the event
 
-      const tweetText = `On This Day: ${text} \n\nFor more information visit: ${url} \n\n#OnThisDay`; // Construct the tweet text
+      const tweetText = `On This Day: ${year}, ${text} \n\nFor more information visit: ${url} \n\n#OnThisDay`; // Construct the tweet text
+
+      while (tweetText.length > 280) {
+        // If the tweet text is too long, remove the last sentence
+        tweetText = tweetText.slice(0, tweetText.lastIndexOf(" "));
+      }
 
       await twitterClient.v2.tweet(tweetText); // Post the tweet
     }
   } catch (error) { // Start of catch block
+    // if tweet is duplicated then try again
+    if (error.code === 187) {
+      console.log("Already tweeted");
+      tweet();
+    }
     console.error("Error:", error); // Log the error
   }
 }
@@ -89,6 +99,8 @@ function getRandomEvent(data) {
       "text": selectedEvent["text"],
       // The URL of the event's page on Wikipedia
       "url": pageDetails["content_urls"] && pageDetails["content_urls"]["desktop"] ? pageDetails["content_urls"]["desktop"]["page"] : null,
+      // The year of the event
+      "year": selectedEvent["year"],
   };
 
   return events;
@@ -97,7 +109,7 @@ function getRandomEvent(data) {
 app.get('/', async (req, res) => {
   console.log('Running Tweet');
   let test = await tweet();
-  console.log("Tweeted: " + test);
+  console.log("Tweeted!")
   res.send('Tweeted! Check @IdrisTheBot on Twitter');
 })
 
