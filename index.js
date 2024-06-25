@@ -21,7 +21,7 @@ const tweet = async () => {
     if (event) { // If an event is available
       const { text, url, year } = event; // Destructure the required properties from the event
 
-      const tweetText = `On This Day: ${year}, ${text} \n\nFor more information visit: ${url} \n\n#OnThisDay`; // Construct the tweet text
+      let tweetText = `On This Day: ${year}, ${text} \n\nFor more information visit: ${url} \n\n#OnThisDay`; // Construct the tweet text
 
       while (tweetText.length > 280) {
         // If the tweet text is too long, remove the last sentence
@@ -32,7 +32,8 @@ const tweet = async () => {
     }
   } catch (error) { // Start of catch block
     // if tweet is duplicated then try again
-    if (error.code === 187) {
+    console.log(`Error ${error.code}`);
+    if (error.code === 403) {
       console.log("Already tweeted");
       tweet();
     }
