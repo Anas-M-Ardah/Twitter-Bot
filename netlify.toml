@@ -2,6 +2,9 @@
 [build]
   functions = "netlify/functions"
 
-[[functions]]
-  name = "index"
-  schedule = "0 */2 * * *"  # Runs every 2 hours
+[functions]
+  node_bundler = "esbuild"  
+
+[functions.scheduler]
+  index = { schedule = "0 */2 * * *" }  # Runs index.js every 2 hours
+
