@@ -1,6 +1,6 @@
 require("dotenv").config({ path: __dirname + "/.env" });
 const { response } = require("express");
-const { twitterClient } = require("./twitterClient.js");
+const { twitterClient } = require("../../twitterClient.js");
 const axios = require('axios');
 let apiQuotes = [];
 const express = require('express');
@@ -27,6 +27,8 @@ const tweet = async () => {
         // If the tweet text is too long, remove the last sentence
         tweetText = tweetText.slice(0, tweetText.lastIndexOf(" "));
       }
+
+      // console.log(tweetText)
 
       await twitterClient.v2.tweet(tweetText); // Post the tweet
     }
@@ -71,6 +73,7 @@ async function fetchApi() {
   } catch (error) {
     // Log the error and return an error object
     console.error("Fetch API error:", error);
+    console.error("Falied to fetch data from the Wikimedia API");
     return { error: "Failed to fetch data" };
   }
 }

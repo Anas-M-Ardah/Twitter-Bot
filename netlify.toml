@@ -1,0 +1,7 @@
+# netlify.toml
+[build]
+  functions = "netlify/functions"
+
+[[functions]]
+  name = "scheduled-function"
+  schedule = "0 */2 * * *"  # Runs every 2 hours
