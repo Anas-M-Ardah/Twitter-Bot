@@ -1,10 +1,16 @@
-# netlify.toml
 [build]
-  functions = "netlify/functions"
+  publish = "."
+  functions = "functions"
+  command = "npm install"
 
 [functions]
-  node_bundler = "esbuild"  
+  directory = "functions"
+  node_bundler = "esbuild"
 
-[functions.scheduler]
-  index = { schedule = "0 */2 * * *" }  # Runs index.js every 2 hours
+[functions."functions/scheduledTweet.js"]
+  schedule = "0 */2 * * *"
 
+[dev]
+  publish = "."
+  port = 8888
+  autoLaunch = false
