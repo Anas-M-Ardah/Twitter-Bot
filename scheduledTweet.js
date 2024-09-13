@@ -24,10 +24,16 @@ async function tweet() {
     if (event) {
       const { text, url, year } = event;
 
-      let tweetText = `On This Day: ${year}, ${text} \n\nFor more information visit: ${url} \n\n#OnThisDay`;
+      let tweetText;
+      if (url) {
+        tweetText = `On This Day: ${year}, ${text} \n\nFor more information visit: ${url} \n\n#OnThisDay`;
+      } else {
+        tweetText = `On This Day: ${year}, ${text} \n\n#OnThisDay`;
+      }
 
-      while (tweetText.length > 280) {
-        tweetText = tweetText.slice(0, tweetText.lastIndexOf(" "));
+      // Truncate the tweet to 280 characters
+      if (tweetText.length > 280) {
+        tweetText = tweetText.slice(0, 277) + "...";
       }
 
       await twitterClient.v2.tweet(tweetText);
@@ -36,12 +42,15 @@ async function tweet() {
     console.error("Error:", error);
     if (error.code === 403) {
       console.log("Already tweeted");
+      // Try again if the error is a duplicate tweet
       await tweet();
     } else {
+      // Rethrow any other error
       throw error;
     }
   }
 }
+
 
 async function fetchApi() {
   const day = new Date().getDate();
