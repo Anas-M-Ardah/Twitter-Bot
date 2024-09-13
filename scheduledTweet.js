@@ -18,26 +18,39 @@ exports.handler = async (event, context) => {
 
 async function tweet() {
   try {
-    const data = await fetchApi(); // Fetch the data from API
+    const data = await fetchApi(); // Fetch data from API
     const event = getRandomEvent(data); // Get a random event from the data
 
     if (event) {
       const { text, url, year } = event;
 
-      let tweetText;
+      let tweetText = `On This Day: ${year}, ${text}`;
       if (url) {
-        tweetText = `On This Day: ${year}, ${text} \n\nFor more information visit: ${url} \n\n#OnThisDay`;
+        tweetText += ` \n\nFor more information visit: ${url} \n\n#OnThisDay`;
       } else {
-        tweetText = `On This Day: ${year}, ${text} \n\n#OnThisDay`;
+        tweetText += ` \n\n#OnThisDay`;
       }
 
-      // Truncate the tweet to 280 characters if necessary
-      if (tweetText.length > 280) {
-        tweetText = tweetText.slice(0, 277) + "...";
+      // Split the text into sentences
+      const sentences = tweetText.split(/(?<=\.)/);
+
+      let finalTweet = "";
+      for (let sentence of sentences) {
+        // Check if adding the next sentence will exceed the character limit
+        if ((finalTweet + sentence).length <= 280) {
+          finalTweet += sentence;
+        } else {
+          break; // Stop if adding the next sentence will exceed 280 characters
+        }
+      }
+
+      // If there's a URL and it fits, try adding it
+      if (url && (finalTweet.length + url.length + 25) <= 280) {
+        finalTweet += ` \n\nFor more information visit: ${url}`;
       }
 
       // Post the tweet using the Twitter API client
-      await twitterClient.v2.tweet(tweetText);
+      await twitterClient.v2.tweet(finalTweet);
 
       console.log("Tweet posted successfully.");
     } else {
@@ -49,7 +62,6 @@ async function tweet() {
     if (error.code === 403) {
       // Handle the error if it's due to a duplicate tweet
       console.log("Duplicate tweet detected. Attempting to retry...");
-      // Retry the tweet with a small delay
       await new Promise(resolve => setTimeout(resolve, 3000)); // 3-second delay
       await tweet();
     } else {
@@ -58,6 +70,7 @@ async function tweet() {
     }
   }
 }
+
 
 
 async function fetchApi(retries = 3, delay = 1000) {
