@@ -36,14 +36,45 @@ jobs:
           echo "TWITTER_ACCESS_TOKEN=${{ secrets.ACCESS_TOKEN }}" >> .env
           echo "TWITTER_ACCESS_TOKEN_SECRET=${{ secrets.ACCESS_SECRET }}" >> .env
       
-      - name: Print env variables for testing
+      - name: Validate environment variables
         run: |
-          echo "PORT=${{ secrets.PORT }}"
-          echo "TWITTER_API_KEY=${{ secrets.API_KEY }}"
-          echo "TWITTER_API_KEY_SECRET=${{ secrets.API_SECRET }}"
-          echo "TWITTER_ACCESS_TOKEN=${{ secrets.ACCESS_TOKEN }}"
-          echo "TWITTER_ACCESS_TOKEN_SECRET=${{ secrets.ACCESS_SECRET }}"
+          echo "Validating environment variables..."
           
+          if [ -z "${{ secrets.PORT }}" ]; then 
+            echo "PORT is NOT set"; 
+            exit 1; 
+          else 
+            echo "PORT is set"; 
+          fi
+
+          if [ -z "${{ secrets.API_KEY }}" ]; then 
+            echo "TWITTER_API_KEY is NOT set"; 
+            exit 1; 
+          else 
+            echo "TWITTER_API_KEY is set"; 
+          fi
+
+          if [ -z "${{ secrets.API_SECRET }}" ]; then 
+            echo "TWITTER_API_KEY_SECRET is NOT set"; 
+            exit 1; 
+          else 
+            echo "TWITTER_API_KEY_SECRET is set"; 
+          fi
+
+          if [ -z "${{ secrets.ACCESS_TOKEN }}" ]; then 
+            echo "TWITTER_ACCESS_TOKEN is NOT set"; 
+            exit 1; 
+          else 
+            echo "TWITTER_ACCESS_TOKEN is set"; 
+          fi
+
+          if [ -z "${{ secrets.ACCESS_SECRET }}" ]; then 
+            echo "TWITTER_ACCESS_TOKEN_SECRET is NOT set"; 
+            exit 1; 
+          else 
+            echo "TWITTER_ACCESS_TOKEN_SECRET is set"; 
+          fi
+
       - name: Run tweet script
         run: |
           node -e "
