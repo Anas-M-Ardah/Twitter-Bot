@@ -33,7 +33,7 @@ jobs:
       - name: Run tweet script
         run: |
           node -e "
-          const TwitterBot = require('./utils/TwitterBot');
+          const TwitterBot = require('../../src/utils/TwitterBot');
           
           async function postTweet() {
             try {
