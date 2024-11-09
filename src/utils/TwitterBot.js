@@ -1,5 +1,8 @@
 const { twitterClient } = require('./twitterClient.js');
 const fetch = require('node-fetch');
+const dotenv = require('dotenv');
+
+dotenv.config({ path: '../.env' });
 
 // Constants
 const TWEET_MAX_LENGTH = 280;
@@ -121,6 +124,9 @@ class TwitterBot {
       if (!event) {
         throw new Error('No valid event found to tweet');
       }
+
+      console.log('Posting tweet...');
+      console.log(`KEY ${process.env.API_KEY}`);
 
       const tweetText = this.formatTweetText(event);
       await twitterClient.v2.tweet(tweetText);
