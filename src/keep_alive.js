@@ -10,7 +10,7 @@ function keepAlive() {
         } catch (error) {
             console.error('Keep-alive ping failed:', error);
         }
-    }, 10); // 14 minutes (Render free tier sleeps after 15 minutes of inactivity)
+    },  840000); // 14 minutes (Render free tier sleeps after 15 minutes of inactivity)
 }
 
 keepAlive();
