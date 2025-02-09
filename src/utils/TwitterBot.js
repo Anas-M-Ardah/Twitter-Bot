@@ -126,7 +126,6 @@ class TwitterBot {
       }
 
       console.log('Posting tweet...');
-      console.log(`KEY ${process.env.API_KEY}`);
 
       const tweetText = this.formatTweetText(event);
       await twitterClient.v2.tweet(tweetText);
