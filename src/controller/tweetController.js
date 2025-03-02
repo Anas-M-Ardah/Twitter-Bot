@@ -69,6 +69,21 @@ exports.updateInformation = async (req, res) => {
     }
 };
 
+exports.updateInformationSilently = async (req, res) => {
+    try{
+        const updatedInfo = await TwitterBot.updateInformation();
+        return res.status(200).json({ 
+            message: 'Information updated successfully',  
+        });
+    } catch (error) {
+        console.error('Controller error: Error updating information:', error);
+        return res.status(500).json({ 
+            message: 'Error occurred while updating information',
+            error: error.message
+        });
+    }
+}
+
 /**
  * Controller for getting current stored information
  * @param {Request} req - Express request object
