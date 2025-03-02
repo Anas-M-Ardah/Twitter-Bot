@@ -13,11 +13,54 @@ const API_CONFIG = {
 };
 
 class TwitterBot {
+  static information = null; // Class static property to store information
+
+  /**
+   * Initialize the bot and fetch initial data
+   */
+  static async initialize() {
+    try {
+      if (!this.information) {
+        this.information = await this.fetchApi();
+        console.log('Information fetched and stored successfully');
+      }
+      return this.information;
+    } catch (error) {
+      console.error('Initialization error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get the stored information
+   */
+  static getInformation() {
+    return this.information;
+  }
+
+  /**
+   * Update the stored information
+   */
+  static async updateInformation() {
+    try {
+      this.information = await this.fetchApi();
+      console.log('Information updated successfully');
+      return this.information;
+    } catch (error) {
+      console.error('Update information error:', error);
+      throw error;
+    }
+  }
+
   /**
    * Handles the API request for posting a tweet
    */
   static async postTweet(req, res) {
     try {
+      // Ensure information is loaded before posting tweet
+      if (!this.information) {
+        await this.initialize();
+      }
       const result = await this.handler();
       return res.status(result.statusCode).json({
         message: result.body ? JSON.parse(result.body).message : 'Failed to post tweet'
@@ -72,14 +115,20 @@ class TwitterBot {
   }
 
   /**
-   * Selects a random event from the API data
+   * Selects a random event from the API data and removes it
    */
   static getRandomEvent(data) {
     if (!data?.selected?.length) {
       throw new Error('Invalid data or empty events list');
     }
 
-    const event = data.selected[Math.floor(Math.random() * data.selected.length)];
+    // Get random index
+    const randomIndex = Math.floor(Math.random() * data.selected.length);
+    // Get the event
+    const event = data.selected[randomIndex];
+    // Remove the event from the array
+    data.selected.splice(randomIndex, 1);
+    
     const pageDetails = event.pages?.[0] || {};
 
     return {
@@ -114,18 +163,38 @@ class TwitterBot {
   }
 
   /**
+   * Check if we need to refresh the information
+   */
+  static needsRefresh() {
+    return !this.information || !this.information.selected || this.information.selected.length === 0;
+  }
+
+  /**
+   * Get the count of remaining events
+   */
+  static getRemainingEventsCount() {
+    return this.information?.selected?.length || 0;
+  }
+
+  /**
    * Main tweet posting function
    */
   static async tweet() {
     try {
-      const data = await this.fetchApi();
-      const event = this.getRandomEvent(data);
+      // Check if we need to refresh the information
+      if (this.needsRefresh()) {
+        await this.updateInformation();
+        console.log('Information refreshed due to empty or missing data');
+      }
+      
+      const event = this.getRandomEvent(this.information);
 
       if (!event) {
         throw new Error('No valid event found to tweet');
       }
 
       console.log('Posting tweet...');
+      console.log(`Remaining events: ${this.information.selected.length}`);
 
       const tweetText = this.formatTweetText(event);
       await twitterClient.v2.tweet(tweetText);
