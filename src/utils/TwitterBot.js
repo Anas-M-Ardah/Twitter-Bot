@@ -13,11 +13,8 @@ const API_CONFIG = {
 };
 
 class TwitterBot {
-  static information = null; // Class static property to store information
+  static information = null;
 
-  /**
-   * Initialize the bot and fetch initial data
-   */
   static async initialize() {
     try {
       if (!this.information) {
@@ -31,16 +28,10 @@ class TwitterBot {
     }
   }
 
-  /**
-   * Get the stored information
-   */
   static getInformation() {
     return this.information;
   }
 
-  /**
-   * Update the stored information
-   */
   static async updateInformation() {
     try {
       this.information = await this.fetchApi();
@@ -52,12 +43,136 @@ class TwitterBot {
     }
   }
 
-  /**
-   * Handles the API request for posting a tweet
-   */
+  static async fetchApi(retries = API_CONFIG.MAX_RETRIES, delay = API_CONFIG.INITIAL_DELAY) {
+    const today = new Date();
+    const month = today.toLocaleString('default', { month: 'long' });
+    const day = today.getDate();
+    const url = `https://today.zenquotes.io/api/${month}_${day}`;
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.statusText} (${response.status})`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('fetchApi error:', error.message);
+
+      if (retries > 0) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return this.fetchApi(retries - 1, delay * 2);
+      }
+      throw new Error(`Failed to fetch data after ${API_CONFIG.MAX_RETRIES} attempts: ${error.message}`);
+    }
+  }
+
+  static async fetchWikipediaImage(searchTerm) {
+    const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(searchTerm)}&prop=pageimages&format=json&pithumbsize=800&origin=*`;
+    
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+      const pages = data.query.pages;
+      const pageId = Object.keys(pages)[0];
+      return pages[pageId]?.thumbnail?.source;
+    } catch (error) {
+      console.error('Error fetching image:', error);
+      return null;
+    }
+  }
+
+  static getRandomEvent(data) {
+    if (!data?.data?.Events?.length) {
+      throw new Error('Invalid data or empty events list');
+    }
+
+    const events = data.data.Events;
+    const randomIndex = Math.floor(Math.random() * events.length);
+    const event = events[randomIndex];
+    
+    // Remove HTML entities and tags
+    const cleanText = event.text.replace(/&#\d+;/g, '').replace(/&[a-zA-Z]+;/g, '');
+    
+    // Get the first Wikipedia link from the event
+    const wikiLink = event.links && Object.values(event.links)[0]?.[1];
+    
+    return {
+      text: cleanText,
+      url: wikiLink,
+      year: cleanText.split(' ')[0]
+    };
+  }
+
+  static formatTweetText({ text, url, year }) {
+    let tweetText = `#OnThisDay ${text}`;
+    
+    if (url) {
+      const remainingLength = TWEET_MAX_LENGTH - 25; // Account for URL length and spacing
+      tweetText = tweetText.slice(0, remainingLength) + `\n\nMore info: ${url}`;
+    }
+
+    return tweetText.slice(0, TWEET_MAX_LENGTH);
+  }
+
+  static async tweet() {
+    try {
+      if (this.needsRefresh()) {
+        await this.updateInformation();
+        console.log('Information refreshed due to empty or missing data');
+      }
+      
+      const event = this.getRandomEvent(this.information);
+      if (!event) {
+        throw new Error('No valid event found to tweet');
+      }
+
+      const tweetText = this.formatTweetText(event);
+      
+      // Try to fetch a relevant image
+      const searchTerm = event.text.split(' ').slice(1).join(' ').split(',')[0];
+      const imageUrl = await this.fetchWikipediaImage(searchTerm);
+      
+      if (imageUrl) {
+        // Download the image
+        const imageResponse = await fetch(imageUrl);
+        const imageBuffer = await imageResponse.buffer();
+        
+        // Upload the image to Twitter
+        const mediaId = await twitterClient.v1.uploadMedia(imageBuffer);
+        
+        // Post tweet with media
+        await twitterClient.v2.tweet({
+          text: tweetText,
+          media: { media_ids: [mediaId] }
+        });
+      } else {
+        // Post tweet without media
+        await twitterClient.v2.tweet(tweetText);
+      }
+
+      console.log('Tweet posted successfully');
+
+    } catch (error) {
+      if (error.code === 403) {
+        console.log('Duplicate tweet detected. Retrying...');
+        await new Promise(resolve => setTimeout(resolve, API_CONFIG.DUPLICATE_RETRY_DELAY));
+        return this.tweet();
+      }
+      throw error;
+    }
+  }
+
+  static needsRefresh() {
+    return !this.information || !this.information.data || !this.information.data.Events;
+  }
+
+  static getRemainingEventsCount() {
+    return this.information?.data?.Events?.length || 0;
+  }
+
   static async postTweet(req, res) {
     try {
-      // Ensure information is loaded before posting tweet
       if (!this.information) {
         await this.initialize();
       }
@@ -71,9 +186,6 @@ class TwitterBot {
     }
   }
 
-  /**
-   * Main handler for the tweet posting process
-   */
   static async handler() {
     try {
       await this.tweet();
@@ -87,126 +199,6 @@ class TwitterBot {
         statusCode: 500,
         body: JSON.stringify({ error: error.message || 'Failed to post tweet' })
       };
-    }
-  }
-
-  /**
-   * Fetches data from the Wikipedia API
-   */
-  static async fetchApi(retries = API_CONFIG.MAX_RETRIES, delay = API_CONFIG.INITIAL_DELAY) {
-    const today = new Date();
-    const url = `https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/all/${today.getMonth() + 1}/${today.getDate()}`;
-
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.statusText} (${response.status})`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error('fetchApi error:', error.message);
-
-      if (retries > 0) {
-        await new Promise(resolve => setTimeout(resolve, delay));
-        return this.fetchApi(retries - 1, delay * 2);
-      }
-      throw new Error(`Failed to fetch data after ${API_CONFIG.MAX_RETRIES} attempts: ${error.message}`);
-    }
-  }
-
-  /**
-   * Selects a random event from the API data and removes it
-   */
-  static getRandomEvent(data) {
-    if (!data?.selected?.length) {
-      throw new Error('Invalid data or empty events list');
-    }
-
-    // Get random index
-    const randomIndex = Math.floor(Math.random() * data.selected.length);
-    // Get the event
-    const event = data.selected[randomIndex];
-    // Remove the event from the array
-    data.selected.splice(randomIndex, 1);
-    
-    const pageDetails = event.pages?.[0] || {};
-
-    return {
-      text: event.text,
-      url: pageDetails.content_urls?.desktop?.page || null,
-      year: event.year
-    };
-  }
-
-  /**
-   * Formats the tweet text within Twitter's character limit
-   */
-  static formatTweetText({ text, url, year }) {
-    let tweetText = `On This Day: ${year}, ${text}`;
-    const sentences = tweetText.split(/(?<=\.)/);
-
-    let finalTweet = '';
-    for (const sentence of sentences) {
-      if ((finalTweet + sentence).length <= TWEET_MAX_LENGTH) {
-        finalTweet += sentence;
-      } else {
-        break;
-      }
-    }
-
-    if (url && (finalTweet.length + url.length + 25) <= TWEET_MAX_LENGTH) {
-      finalTweet += ` \n\nFor more information visit: ${url}`;
-    }
-
-    finalTweet += ' \n\n#OnThisDay';
-    return finalTweet.slice(0, TWEET_MAX_LENGTH);
-  }
-
-  /**
-   * Check if we need to refresh the information
-   */
-  static needsRefresh() {
-    return !this.information || !this.information.selected || this.information.selected.length === 0;
-  }
-
-  /**
-   * Get the count of remaining events
-   */
-  static getRemainingEventsCount() {
-    return this.information?.selected?.length || 0;
-  }
-
-  /**
-   * Main tweet posting function
-   */
-  static async tweet() {
-    try {
-      // Check if we need to refresh the information
-      if (this.needsRefresh()) {
-        await this.updateInformation();
-        console.log('Information refreshed due to empty or missing data');
-      }
-      
-      const event = this.getRandomEvent(this.information);
-
-      if (!event) {
-        throw new Error('No valid event found to tweet');
-      }
-
-      console.log('Posting tweet...');
-      console.log(`Remaining events: ${this.information.selected.length}`);
-
-      const tweetText = this.formatTweetText(event);
-      await twitterClient.v2.tweet(tweetText);
-      console.log('Tweet posted successfully');
-
-    } catch (error) {
-      if (error.code === 403) {
-        console.log('Duplicate tweet detected. Retrying...');
-        await new Promise(resolve => setTimeout(resolve, API_CONFIG.DUPLICATE_RETRY_DELAY));
-        return this.tweet();
-      }
-      throw error;
     }
   }
 }
