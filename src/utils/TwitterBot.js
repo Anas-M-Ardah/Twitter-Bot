@@ -67,21 +67,6 @@ class TwitterBot {
     }
   }
 
-  static async fetchWikipediaImage(searchTerm) {
-    const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(searchTerm)}&prop=pageimages&format=json&pithumbsize=800&origin=*`;
-    
-    try {
-      const response = await fetch(url);
-      const data = await response.json();
-      const pages = data.query.pages;
-      const pageId = Object.keys(pages)[0];
-      return pages[pageId]?.thumbnail?.source;
-    } catch (error) {
-      console.error('Error fetching image:', error);
-      return null;
-    }
-  }
-
   static getRandomEvent(data) {
     if (!data?.data?.Events?.length) {
       throw new Error('Invalid data or empty events list');
@@ -92,26 +77,74 @@ class TwitterBot {
     const event = events[randomIndex];
     
     // Remove HTML entities and tags
-    const cleanText = event.text.replace(/&#\d+;/g, '').replace(/&[a-zA-Z]+;/g, '');
+    const cleanText = event.text
+      .replace(/&#\d+;/g, '') // Remove numeric HTML entities
+      .replace(/&[a-zA-Z]+;/g, '') // Remove named HTML entities
+      .replace(/<[^>]*>/g, ''); // Remove HTML tags
     
-    // Get the first Wikipedia link from the event
-    const wikiLink = event.links && Object.values(event.links)[0]?.[1];
+    // Extract year from the beginning of the text
+    const year = cleanText.split(' ')[0];
+    
+    // Remove the year from the beginning and clean up any extra spaces
+    const textWithoutYear = cleanText.substring(year.length).trim();
+    
+    // Find the most relevant Wikipedia link
+    let wikiLink = null;
+    if (event.links) {
+      // Convert links object to array and find the most relevant link
+      const linksArray = Object.values(event.links);
+      
+      // Try to find a link that contains key terms from the event text
+      const keywords = textWithoutYear
+        .toLowerCase()
+        .split(' ')
+        .filter(word => word.length > 3) // Filter out short words
+        .slice(0, 3); // Take first 3 significant words
+
+      for (const link of linksArray) {
+        const linkUrl = link[1].toLowerCase();
+        const linkText = link[2].toLowerCase();
+        
+        // Check if the link text or URL contains any of our keywords
+        if (keywords.some(keyword => 
+          linkText.includes(keyword) || 
+          linkUrl.includes(keyword))) {
+          wikiLink = link[1];
+          break;
+        }
+      }
+
+      // If no relevant link found, use the first link as fallback
+      if (!wikiLink && linksArray.length > 0) {
+        wikiLink = linksArray[0][1];
+      }
+    }
     
     return {
-      text: cleanText,
-      url: wikiLink,
-      year: cleanText.split(' ')[0]
+      text: textWithoutYear,
+      year: year,
+      url: wikiLink
     };
   }
 
-  static formatTweetText({ text, url, year }) {
-    let tweetText = `#OnThisDay ${text}`;
+  static formatTweetText({ text, year, url, additionalInfo }) {
+    // Start with the hashtag and main event
+    let tweetText = `#OnThisDay in ${year}: ${text}`;
     
+    // Add additional info if available and meaningful
+    if (additionalInfo && additionalInfo.length > 0) {
+      tweetText += `\n\n${additionalInfo}`;
+    }
+    
+    // Add the URL if available
     if (url) {
-      const remainingLength = TWEET_MAX_LENGTH - 25; // Account for URL length and spacing
-      tweetText = tweetText.slice(0, remainingLength) + `\n\nMore info: ${url}`;
+      tweetText += `\n\nRead more: ${url}`;
     }
 
+    // Log the final tweet text for debugging
+    console.log('Final tweet text before truncation:', tweetText);
+
+    // Ensure we don't exceed the maximum length
     return tweetText.slice(0, TWEET_MAX_LENGTH);
   }
 
@@ -121,37 +154,16 @@ class TwitterBot {
         await this.updateInformation();
         console.log('Information refreshed due to empty or missing data');
       }
-      
+
       const event = this.getRandomEvent(this.information);
       if (!event) {
         throw new Error('No valid event found to tweet');
       }
 
       const tweetText = this.formatTweetText(event);
-      
-      // Try to fetch a relevant image
-      const searchTerm = event.text.split(' ').slice(1).join(' ').split(',')[0];
-      const imageUrl = await this.fetchWikipediaImage(searchTerm);
-      
-      if (imageUrl) {
-        // Download the image
-        const imageResponse = await fetch(imageUrl);
-        const imageBuffer = await imageResponse.buffer();
-        
-        // Upload the image to Twitter
-        const mediaId = await twitterClient.v1.uploadMedia(imageBuffer);
-        
-        // Post tweet with media
-        await twitterClient.v2.tweet({
-          text: tweetText,
-          media: { media_ids: [mediaId] }
-        });
-      } else {
-        // Post tweet without media
-        await twitterClient.v2.tweet(tweetText);
-      }
-
+      await twitterClient.v2.tweet(tweetText);
       console.log('Tweet posted successfully');
+      console.log('Tweet content:', tweetText);
 
     } catch (error) {
       if (error.code === 403) {
